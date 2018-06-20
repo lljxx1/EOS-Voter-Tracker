@@ -42,11 +42,6 @@ eos = EosApi({
     }
 })
 
-eos = EosApi({
-    httpEndpoint: API_ENDPOINT,
-   logger: {
-   }
-})
 
 var current = parseInt(fs.readFileSync("./fetched", "utf-8"));
 
