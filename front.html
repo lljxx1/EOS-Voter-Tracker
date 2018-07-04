@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 <html>
     <head>
         <title>EOS Voting Data and Statistics</title>
@@ -9,22 +13,21 @@
         <meta name="description" content="Knowing who votes for who, tracking the vote data">
         <meta name="author" content="fun">
         <meta property="og:image" content="https://eosmedi.com/wp-content/uploads/2018/05/QQ%E5%9B%BE%E7%89%8720180517220830-e1526574262156.png" />
-
         <link rel="shortcut icon" href="https://eosmedi.com/wp-content/uploads/2018/05/QQ%E5%9B%BE%E7%89%8720180517220830-e1526574262156.png"/>
         <script src="https://cdn.bootcss.com/es6-promise/4.1.1/es6-promise.auto.min.js"></script>
-        <script src="https://unpkg.com/vue/dist/vue.js"></script>
-        <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
-    
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vue-router@3.0.1/dist/vue-router.min.js"></script>
         <script src="https://cdn.bootcss.com/axios/0.18.0/axios.min.js"></script>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB"
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.1/dist/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB"
             crossorigin="anonymous">
-        <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.slim.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
-            crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
-            crossorigin="anonymous"></script>
+ 
+        <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+            crossorigin="anonymous"></script> -->
 
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.4.3/lib/theme-chalk/index.css">
+        <script src="https://cdn.jsdelivr.net/npm/element-ui@2.4.3/lib/index.js"></script>
         <script src="https://cdn.bootcss.com/moment.js/2.22.1/moment-with-locales.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     </head>
     
     <body>
@@ -95,22 +98,70 @@
                 color: red;
                 text-decoration: underline
             }
+
+            .pagination{
+                margin-top: 20px;
+            }
     
             
+            .producer-logo-block{
+                display: inline-block;
+                width: 50px;
+                height: 50px;
+                overflow: hidden;
+                vertical-align: middle;
+                margin-right: 10px;
+                background: #fefefe;
+            }
+
+
+            .producers-list,
+            .producer-list-link{
+                font-size: 14px;
+            }
+
+            .el-tag{
+                margin-right: 10px;
+                margin-bottom: 5px;
+            }
+
+            .producer-list-item {
+                padding-top: 20px;
+                /* background-color: #f5f7fa; */
+                border-bottom: 1px solid #ebeef5;
+            }
+
+            .producer-list-item .el-main{
+                /* padding-top: 10px; */
+                font-size: 13px;
+            }
+
+            .producer-list-item .el-main p{
+                margin-bottom: 5px;
+            }
+
+            .producers-list{
+                border-top: 1px solid #ebeef5;
+                margin-top: 25px;
+            }
+
+
+            .producer-list-item.selected{
+                background: #f5f7fa;
+            }
+            
         </style>
-    
     
         <div id="app">
             <div class="navbar navbar-expand navbar-dark flex-column flex-md-row bd-navbar">
                 <a class="navbar-brand mr-0 mr-md-2" href="#/">
-                    <img src="//eosmedi.com/wp-content/uploads/2018/05/QQ%E5%9B%BE%E7%89%8720180517220830-e1526574262156.png" height="60" alt="EOS Mediterranean">
+                    <img src="https://eosmedi.com/wp-content/uploads/2018/05/QQ%E5%9B%BE%E7%89%8720180517220830-e1526574262156.png" height="60" alt="EOS Mediterranean">
                 </a>
-
                 <div class="navbar-nav-scroll">
                     <ul class="navbar-nav bd-navbar-nav flex-row">
                         <li class="nav-item">
                             <span style="font-size:14px;color:#555;">EOS Mediterranean</span>
-                            <h1 class="d-md-flex">EOS Voter Tracker</h1>
+                            <h1 class="d-md-flex" class="tool-name" :style="isMobile ? 'font-size:2rem;' : ''">EOS Voter Tracker</h1>
                         </li>
                     </ul>
                   </div>
@@ -139,8 +190,7 @@
                                                 <div class="progress" style="
                                                 width: 100%;
                                             ">
-                                                        <div class="progress-bar" role="progressbar" :style="'width:'+ (status.percent_stacked / 15 * 100) +'%;'"
-                                                        
+                                                        <div class="progress-bar" role="progressbar" :style="'width:'+ status.percent_stacked +'%;'"
                                                         aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{ status.percent_stacked }}%</div>
                                                 </div>
                                             </span>
@@ -202,10 +252,145 @@
             </div>
         </div>
     
-    
+
         <template id="producerList" type="text/div">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <el-row >
+                    <el-button type="primary" plain @click="visuliazeProducers">Visualize Producer Voters</el-button>
+                </el-row>
+                <el-table
+                    v-if="!isMobile"
+                    v-loading="loading"
+                    :data="tableData"
+                    empty-text="No data"
+                    @selection-change="handleSelectionChange"
+                    style="width: 100%">
+                    <el-table-column
+                        type="selection"
+                        width="45">
+                    </el-table-column>
+                    <el-table-column
+                      label="#"
+                      width="55"
+                      prop="index" sortable 
+                      >
+                      <template slot-scope="scope">
+                        <span>{{ scope.row.index }}</span>
+                      </template>
+                    </el-table-column>
+
+                    <el-table-column
+                        width="310"
+                        label="Producer" >
+                      <template slot-scope="scope">
+                            <el-popover trigger="hover" placement="top">
+                                <p>Producer: {{ scope.row.owner }}</p>
+                                <p>URL: {{ scope.row.url }}</p>
+                                <div slot="reference" class="name-wrapper">
+                                        <span class="producer-logo-block">
+                                                <img :src="scope.row.branding.logo_256 ? scope.row.branding.logo_256 : scope.row.branding.logo_1024" v-if="scope.row.branding && (scope.row.branding.logo_256 || scope.row.branding.logo_1024)" height="50"
+                                                onerror="this.src='https://votetracker.eosmedi.com/image-o.png'">
+                                            </span>
+                                            <router-link :to="{ name: 'ProducerDetail', params: { producer: scope.row.owner }}" class="producer-list-link">
+                                                <span v-if="scope.row.candidate_name">{{ scope.row.candidate_name }}</span> <span v-if="!scope.row.candidate_name">{{ scope.row.owner }}</span>  
+                                            </router-link>
+                                </div>
+                            </el-popover>
+                      </template>
+                    </el-table-column>
+
+                    <el-table-column label="Votes %" width="100">
+                      <template slot-scope="scope">
+                            {{ (parseInt(scope.row.total_votes) / chainState.total_producer_vote_weight * 100).toFixed(3) }}%
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Votes" width="120">
+                      <template slot-scope="scope">
+                            {{ numberWithCommas((scope.row.total_votes  / calculateVoteWeight() / 10000).toFixed(0)) }}
+                      </template>
+                    </el-table-column>
+
+                    <el-table-column label="Voters" prop="voters" sortable width="100">
+                        <template slot-scope="scope">
+                            <router-link :to="{ name: 'ProducerDetail', params: { producer: scope.row.owner }}">{{ scope.row.voters }}</router-link>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column label="Location">
+                        <template slot-scope="scope">
+                            <span v-if="scope.row.org_location">{{ scope.row.org_location.name }}</span>
+                            <span v-if="!scope.row.org_location && scope.row.location">{{ countryCode[scope.row.location] }}</span>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column label="Tags">
+                        <template slot-scope="scope">
+                            <el-tag
+                                :type="tag === 'Exchange' ? 'primary' : tag === 'Mining pools' ? 'success' : 'info'"
+                                disable-transitions v-if="scope.row.tags.length" v-for="tag in scope.row.tags">{{ tag }}</el-tag>
+                        </template>
+                    </el-table-column>
+
+                    <el-table-column
+                        label="URL">
+                        <template slot-scope="scope">
+                            <span v-if="scope.row.url"><a :href="scope.row.url" target="_blank">Website</a></span>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <div v-if="isMobile" class="producers-list" v-loading.fullscreen.lock="loading">
+                    <el-container v-for="(row, index ) in tableData" :class="row.selected ? 'producer-list-item selected' : 'producer-list-item'">
+                        <el-aside width="50px">
+                            <el-popover trigger="hover" placement="top">
+                                <p>Producer: {{ row.owner }}</p>
+                                <p>URL: {{ row.url }}</p>
+                                <div slot="reference" class="name-wrapper">
+                                        <span class="producer-logo-block" style="margin-right:0;margin-top:0px">
+                                                <img :src="row.branding.logo_256 ? row.branding.logo_256 : row.branding.logo_1024" v-if="row.branding && (row.branding.logo_256 || row.branding.logo_1024)" height="50"
+                                                onerror="this.src='https://votetracker.eosmedi.com/image-o.png'">
+                                        
+                                        </span>
+                                </div>
+                            </el-popover>
+                        </el-aside>
+                        <el-container>
+                            <el-header height="30px">
+                                <el-container>
+                                    <el-container>
+                                        <el-header height="30px" style="padding-left:0;padding-top:8px;">
+                                            {{ index+1 }}. 
+                                            <router-link :to="{ name: 'ProducerDetail', params: { producer: row.owner }}" class="producer-list-link">
+                                                <span v-if="row.candidate_name">{{ row.candidate_name }}</span> <span v-if="!row.candidate_name">{{ row.owner }}</span>  
+                                            </router-link>
+                                        </el-header>
+                                    </el-container>
+                                    <el-aside width="100px" style="text-align:right;">
+                                        <span style="font-size: 12px;" >
+                                            {{ (parseInt(row.total_votes) / chainState.total_producer_vote_weight * 100).toFixed(3) }}%<br>
+                                            {{ numberWithCommas((row.total_votes  / calculateVoteWeight() / 10000).toFixed(0)) }}
+                                        </span>
+                                    </el-aside>
+                                </el-container>
+                            </el-header>
+                            <el-main>
+                                <div  @click="clickProducer(row)">
+                                    <!-- <p>{{ (parseInt(row.total_votes) / chainState.total_producer_vote_weight * 100).toFixed(3) }}%</p>
+                                    <p>{{ numberWithCommas((row.total_votes  / calculateVoteWeight() / 10000).toFixed(0)) }}</p> -->
+                                    <p>Voters: <router-link :to="{ name: 'ProducerDetail', params: { producer: row.owner }}">{{ row.voters }}</router-link></p>
+                                    <p>Location: <span v-if="row.org_location">{{ row.org_location.name }}</span>
+                                    <span v-if="!row.org_location && row.location">{{ countryCode[row.location] }}</span></p>
+                                    <p><el-tag
+                                        :type="tag === 'Exchange' ? 'primary' : tag === 'Mining pools' ? 'success' : 'info'"
+                                        disable-transitions v-if="row.tags.length" v-for="tag in row.tags">{{ tag }}</el-tag></p> 
+                                    <span v-if="row.url"><a :href="row.url" target="_blank">Website</a></span>
+                                </div>
+                            </el-main>
+                        </el-container>
+                    </el-container>
+                </div>
+
+                <table class="table table-hover" v-if="0">
                     <thead>
                         <tr>
                             <th scope="col">#</th>
@@ -224,7 +409,7 @@
                         <tr v-for="(producer, index ) in producers" v-if="producer.show">
                             <th scope="row">{{ index+1 }}</th>
                             <td>
-                                <router-link :to="{ name: 'ProducerDetail', params: { producer: producer.owner }}">{{ producer.owner }}</router-link>
+                                <router-link :to="{ name: 'ProducerDetail', params: { producer: producer.owner }}">{{ producer.owner }} </router-link>
                             </td>
                             <td>{{ (parseInt(producer.total_votes) / chainState.total_producer_vote_weight * 100).toFixed(3) }}%</td>
                             <td>{{ numberWithCommas((producer.total_votes  / calculateVoteWeight() / 10000).toFixed(0)) }}</td>
@@ -245,29 +430,40 @@
     
         <template id="VoterList" type="text/div">
             <div>
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Voter Account</th>
-                            <th scope="col">Staked</th>
-                            <th scope="col">Voted Producers</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="loading">
-                            <td cols="4">Loading data....</td>
-                        </tr>
-                        <tr v-for="(voter, index ) in voters">
-                            <th scope="row">{{ index+1 }}</th>
-                            <td>
-                                <router-link :to="{ name: 'VoterDetail', params: { voter: voter.account_name }}">{{ voter.account_name }}</router-link>
-                            </td>
-                            <td>{{ numberWithCommas((voter.voter_info.staked / 10000 ).toFixed(0)) }} EOS</td>
-                            <td><router-link :to="{ name: 'VoterDetail', params: { voter: voter.account_name }}">{{ voter.voter_info.producers.length }}</router-link></td>
-                        </tr>
-                    </tbody>
-                </table>
+
+                <el-table
+                    v-loading="loading"
+                    v-loading="loading"
+                    :data="voters"
+                    empty-text="No data"
+                    style="width: 100%">
+
+                    <el-table-column
+                        type="index">
+                    </el-table-column>
+
+                    <el-table-column
+                        label="Voter Account" >
+                        <template slot-scope="scope">
+                            <router-link :to="{ name: 'VoterDetail', params: { voter: scope.row.account_name }}">{{ scope.row.account_name }}</router-link>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="Staked">
+                      <template slot-scope="scope">
+                            {{ numberWithCommas((scope.row.voter_info.staked / 10000 ).toFixed(0)) }} EOS
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Voted Producers">
+                      <template slot-scope="scope">
+                            <router-link :to="{ name: 'VoterDetail', params: { voter: scope.row.account_name }}">{{ scope.row.voter_info.producers.length }}</router-link>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Tags">
+                        <template slot-scope="scope">
+                            <el-tag v-if="scope.row.voter_info && scope.row.voter_info.is_proxy">Proxy</el-tag>
+                        </template>
+                    </el-table-column>
+                </el-table>
                 <page :current="currentPage" :allpage="totalPage" ref="page"></page>
             </div>
         </template>
@@ -292,26 +488,38 @@
                     <label>Voters</label>: {{ producer.producer.voters }}
                     <br>
                 </div>
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Voter Account</th>
-                            <th scope="col">Stacked</th>
-                            <th scope="col">Voted Producers</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(voter, index ) in producer.voters">
-                            <th scope="row">{{ index+1 }}</th>
-                            <td>
-                                <router-link :to="{ name: 'VoterDetail', params: { voter: voter.account_name }}">{{ voter.account_name }}</router-link>
-                            </td>
-                            <td>{{ numberWithCommas((voter.voter_info.staked / 10000).toFixed(0)) }} EOS</td>
-                            <td><router-link :to="{ name: 'VoterDetail', params: { voter: voter.account_name }}">{{ voter.voter_info.producers.length }}</router-link></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <el-table
+                    :data="producer.voters"
+                    empty-text="No data"
+                    v-loading="loading"
+                    style="width: 100%">
+
+                    <el-table-column
+                        type="index">
+                    </el-table-column>
+
+                    <el-table-column
+                        label="Voter Account" >
+                        <template slot-scope="scope">
+                            <router-link :to="{ name: 'VoterDetail', params: { voter: scope.row.account_name }}">{{ scope.row.account_name }}</router-link>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="Staked">
+                      <template slot-scope="scope">
+                            {{ numberWithCommas((scope.row.voter_info.staked / 10000 ).toFixed(0)) }} EOS
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Voted Producers">
+                      <template slot-scope="scope">
+                            <router-link :to="{ name: 'VoterDetail', params: { voter: scope.row.account_name }}">{{ scope.row.voter_info.producers.length }}</router-link>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Tags">
+                        <template slot-scope="scope">
+                            <el-tag v-if="scope.row.voter_info && scope.row.voter_info.is_proxy">Proxy</el-tag>
+                        </template>
+                    </el-table-column>
+                </el-table>
                 <page :current="currentPage" :allpage="totalPage" ref="page"></page>
             </div>
         </template>
@@ -322,37 +530,32 @@
                 <div role="alert" class="alert alert-secondary" id="producerInfo">
                         <label for="file-1" class="">Account Name : </label>
                         {{ voter.account_name }}
-
                         <br>
                         <label for="file-1" class="">Balance: </label>
                         <span v-for="blanceItem in voter.blance">{{ blanceItem }}</span>
                         <br>
                         <label for="file-1" class="">Staked EOS: </label>
                         {{ numberWithCommas((voter.voter_info.staked / 10000).toFixed(0)) }} EOS
-                    
-                    <!-- <p>
-                        <label for="file-1" class="col-12 col-sm-3 col-form-label text-sm-right">Voted Producers</label>
-                        <router-link :to="{ name: 'ProducerDetail', params: { producer: producer }}" v-for="producer in voter.voter_info.producers"
-                            class="btn btn-link">{{ producer }}</router-link>
-                    </p> -->
+                        <br>
+                        <label for="file-1" class="">ETH Address: </label>
+                        <a  :href="'https://etherscan.io/address/' + voter.eth" v-if="voter.eth" target="_blank">{{ voter.eth }}</a>
                 </div>
-
                 <producers-list :chain-state="chainState" :filter-producers="voter.voter_info.producers"></producers-list>
-    
-                <style>
-                    .btn {
-                        margin-right: 5px;
-                    }
-    
-                    .col-form-label {
-                        color: black;
-                        font-weight: bold
-                    }
-                </style>
             </div>
         </template>
-    
-    
+
+        <script type="text/x-template" id="VoterStruct">
+            <div v-loading.fullscreen.lock="loading">
+                <div class="" style="padding-bottom:50px"></div>
+                <treemap :name="chart.chartName" :data="chart.chartData" v-for="chart in charts"></treemap>
+            </div>
+        </script>
+
+        <script type="text/x-template" id="treemap">
+            <div ref="chart" style="width: auto; height: 500px; position: relative;margin-bottom:60px;">
+            </div>
+        </script>
+
         <script type="text/x-template" id="page">
             <ul class="pagination" >
                 <li class="page-item" v-show="current != 1" @click="current-- && goto(current)" ><a href="#" class="page-link">Prev</a></li>
@@ -406,46 +609,249 @@
                     }
                 }
             })
+
+
+            var producerTags = {
+                bitfinexeos1: ["Exchange"],
+                eoshuobipool: ["Exchange"],
+                zbeosbp11111: ["Exchange"],
+                okcapitalbp1: ["Exchange"],
+                eosantpoolbp: ["Mining pools"]
+            };
+
+            Vue.component("treemap", {
+                template: "#treemap",
+                props: ["data", "name"],
+                data: function () {
+                    console.log("page", this.current);
+                    return {
+                        myChart: null
+                    }
+                },
+
+                mounted: function(){
+                    console.log(this.$refs.chart);
+                    this.myChart = this.$echarts.init(this.$refs.chart);
+                    this.renderChart();
+                },
+
+                watch:{
+                    data: function (newVal, oldVal) {
+                        this.renderChart();
+                    },
+                },
+                methods: {
+                    renderChart: function (index) {
+                        var myChart = this.myChart;
+                        var formatUtil = echarts.format;
+                        function getLevelOption() {
+                            return [
+                                {
+                                    itemStyle: {
+                                        normal: {
+                                            borderColor: '#777',
+                                            borderWidth: 0,
+                                            gapWidth: 1
+                                        }
+                                    },
+                                    upperLabel: {
+                                        normal: {
+                                            show: false
+                                        }
+                                    }
+                                },
+                                {
+                                    itemStyle: {
+                                        normal: {
+                                            borderColor: '#555',
+                                            borderWidth: 5,
+                                            gapWidth: 1
+                                        },
+                                        emphasis: {
+                                            borderColor: '#ddd'
+                                        }
+                                    }
+                                },
+                                {
+                                    colorSaturation: [0.35, 0.5],
+                                    itemStyle: {
+                                        normal: {
+                                            borderWidth: 5,
+                                            gapWidth: 1,
+                                            borderColorSaturation: 0.6
+                                        }
+                                    }
+                                }
+                            ];
+                        }
+
+
+                        console.log("data", this.data);
+                    
+                        myChart.setOption(option = {
+                            title: {
+                                text: this.name,
+                                left: 'center'
+                            },
+                    
+                            tooltip: {
+                                formatter: function (info) {
+                                    var value = info.value;
+                                    var treePathInfo = info.treePathInfo;
+                                    var treePath = [];
+                    
+                                    for (var i = 1; i < treePathInfo.length; i++) {
+                                        treePath.push(treePathInfo[i].name);
+                                    }
+                    
+                                    return [
+                                        '<div class="tooltip-title">' + formatUtil.encodeHTML(treePath.join('/')) + '</div>',
+                                        'Staked: ' + formatUtil.addCommas(value) + ' EOS',
+                                    ].join('');
+                                }
+                            },
+                    
+                            series: [
+                                {
+                                    name:'Voters',
+                                    type:'treemap',
+                                    visibleMin: 300,
+                                    label: {
+                                        show: true,
+                                        formatter: '{b}'
+                                    },
+                                    upperLabel: {
+                                        normal: {
+                                            show: true,
+                                            height: 30
+                                        }
+                                    },
+                                    itemStyle: {
+                                        normal: {
+                                            borderColor: '#fff'
+                                        }
+                                    },
+                                    levels: getLevelOption(),
+                                    data: this.data
+                                }
+                            ]
+                        });
+                    }
+                }
+            })
     
             var axiosInstance = axios.create();
             Vue.prototype.API = axiosInstance;
             axiosInstance.defaults.params = {};
             axiosInstance.defaults.baseURL = "https://api.voter.eosmedi.com/"
+
+            Vue.prototype.$echarts = echarts;
+
+            function isMobileResolution(){
+                var width = window.innerWidth;
+                if(width && width < 800){
+                    return true;
+                }
+                return false;
+            }
+
+            var isMobile = isMobileResolution();
+
+            window.onresize = function(evt){
+                isMobile = isMobileResolution();
+                console.log("isMobile", isMobile);
+            }
+
+            Vue.prototype.isMobile = isMobile;
     
             var ProducersList = {
-                template: $("#producerList").html(),
+                template: "#producerList",
                 props: ['chainState', 'filterProducers'],
                 data: function () {
                     this.getProducers();
                     var self = this;
                     console.log('filterProducers', this.filterProducers);
                     setInterval(function () {
-                        self.getProducers();
-                    }, 20 * 1000);
-
+                        self.getProducers(true);
+                    }, 80 * 1000);
                     return {
                         countryCode: countryCode,
                         loading: true,
-                        producers: {},
+                        producers: [],
+                        tableData: [],
+                        request: true,
+                        multipleSelection: [],
                         t: 0
                     }
                 },
                 methods: {
+                    visuliazeProducers: function(){
+                        if(!this.multipleSelection.length){
+                            return;
+                        }
+                        this.$router.push( { name: 'VoterStruct', params: { producers: this.multipleSelection.join(',') }})
+                    },
+                    handleSelectionChange: function (val) {
+                        console.log('handleSelectionChange', val);
+                        var selectedProducers = [];
+                        for(var key in val){
+                            selectedProducers.push(val[key].owner)
+                        }
+                        this.multipleSelection = selectedProducers;
+                    },
+                    clickProducer: function(row, index){
+                        Vue.set(row, "selected", !row.selected);
+                        var val = [];
+                        for(var key in this.tableData){
+                            if(this.tableData[key].selected) val.push(this.tableData[key]);
+                        }
+                        this.handleSelectionChange(val);
+                        console.log('clickProducer', row, val);
+                    },
                     getProducers: function (isTimer) {
                         var self = this;
+
+                        if(isTimer && self.request){
+                            return;
+                        }
+                        this.request = true;
                         this.API.get("getProducers").then(function (res) {
                             self.producers = res.data;
                             self.loading = false;
+                            self.request = false;
+                            
+                            var tableData = [];
+                            var indexCount = 0;
+
                             for(var key in self.producers){
+                                indexCount++;
                                 var producer = self.producers[key];
                                 var show = true;
-
                                 if(self.filterProducers && self.filterProducers.indexOf(producer.owner) == -1){
                                     show = false;
                                 }
-                                producer.show = show;
-                            }
 
+                                producer.show = show;
+                                producer.index = indexCount;
+                                producer.voters =  producer.voters ?  producer.voters : 0;
+
+                                producer.tags = [];
+
+                                if(producerTags[producer.owner]){
+                                    producer.tags = [].concat(producerTags[producer.owner]);
+                                }
+                                
+                                if(producer.org_location &&  producer.org_location.country){
+                                    producer.tags.push(producer.org_location.country);
+                                }
+                                // console.log('producerTags[key]', producerTags[producer.owner]);
+                                if(show){
+                                    tableData.push(producer);
+                                }
+                            }
+                            
+                            self.tableData = tableData;
+                            
                             // filterProducers && filterProducers.indexOf(voter.account_name) > -1
                             var r = 0;
                             for (var i in self.producers)
@@ -480,7 +886,7 @@
     
     
             var ProducerDetail = {
-                template: $("#producerDetail").html(),
+                template: "#producerDetail",
                 props: ["chainState"],
                 data: function () {
                     return {
@@ -540,14 +946,14 @@
     
     
             var VoterList = {
-                template: $("#VoterList").html(),
+                template:"#VoterList",
                 data: function () {
                     return {
                         currentPage: 1,
                         totalPage: 10,
                         pageSize: 20,
                         loading: true,
-                        voters: {}
+                        voters: []
                     }
                 },
                 mounted: function () {
@@ -587,7 +993,7 @@
             }
     
             var VoterDetail = {
-                template: $("#VoterDetail").html(),
+                template: "#VoterDetail",
                 props: ['chainState'],
                 components: {
                   'producers-list'  : ProducersList
@@ -628,6 +1034,65 @@
                     }
                 }
             }
+
+
+            var VoterStruct = {
+                template: '#VoterStruct',
+                components: {
+                  'producers-list'  : ProducersList
+                },
+                data: function () {
+                    console.log("VoterStruct");
+                    this.getProducerData();
+                    return {
+                        chainState: chainState,
+                        data: [],
+                        loading: true,
+                        charts: []
+                    }
+                },
+                mounted: function () {
+                  
+                    // this.chartData = diskData;
+                  
+                },
+                watch: {
+                    voter: function (newVal, oldVal) {
+                    },
+                    $route: function (to, from) {
+                        this.getVoter();
+                    }
+                },
+    
+                methods: {
+                    getProducerData: function () {
+                        var self = this;
+                        var params = this.$route.params;
+                        console.log(this.$router);
+                        this.API.get("voterCompare?producers="+params.producers).then(function (res) {
+                            self.data = res.data;
+                            self.loading = false;
+                            self.data.forEach(function(data){
+                                var chartData =  data.voters.map(function(v){ 
+                                    return { 
+                                        name: v.account_name, 
+                                        value: v.staked/10000 
+                                    }
+                                });
+
+                                self.charts.push({
+                                    chartName: data.producer.owner,
+                                    chartData: chartData
+                                });
+
+                            })
+                            console.log(self.charts);
+                        })
+                    }
+                }
+            }
+
+            
     
             var routes = [
                 { path: '/', component: ProducersList },
@@ -642,6 +1107,10 @@
                 {
                     name: "VoterDetail",
                     path: '/voter/:voter', component: VoterDetail
+                },
+                {
+                    name: "VoterStruct",
+                    path: '/voterStruct/:producers', component: VoterStruct
                 }
             ]
     
@@ -655,12 +1124,12 @@
                     var self = this;
                     self.getStatus();
                     setInterval(function () {
-                        self.getStatus();
+                        self.getStatus(true);
                     }, 10 * 1000);
     
                     self.getVoteLogs();
                     setInterval(function () {
-                        self.getVoteLogs();
+                        self.getVoteLogs(true);
                     }, 10 * 1000);
     
                     return {
@@ -670,6 +1139,8 @@
                             percent_stacked: 9.863
                         },
                         countryCode: countryCode,
+                        requestStatus: true,
+                        requestLogs: true,
                         chainState: {},
                         logFilters: {},
                         voteLogs: []
@@ -722,19 +1193,32 @@
                         return true;
                     },
 
-                    getStatus: function () {
+                    getStatus: function (isTimer) {
                         var self = this;
                         var params = this.$route.params;
+
+                        if(isTimer && self.requestStatus){
+                            return;
+                        }
+
+                        this.requestStatus = true;
                         this.API.get("getStatus").then(function (res) {
                             self.status = res.data;
+                            self.requestStatus = false;
                             self.chainState = self.status.chain_state;
                             self.chainState.total_producer_vote_weight = parseInt(self.chainState.total_producer_vote_weight);
                         })
                     },
 
-                    getVoteLogs: function () {
+                    getVoteLogs: function (isTimer) {
                         var self = this;
+                        if(isTimer && self.requestLogs){
+                            return;
+                        }
+
+                        this.requestLogs = true;
                         this.API.get("getVoteLogs").then(function (res) {
+                            self.requestLogs = false;
                             self.voteLogs = res.data.reverse();
                         })
                     },
@@ -752,4 +1236,8 @@
   gtag('config', 'UA-119761410-1');
 </script>
     </body>
-</html>
+    
+    </html>
+
+
+
