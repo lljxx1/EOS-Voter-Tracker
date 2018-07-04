@@ -7,16 +7,17 @@ var express = require('express'),
 
 app.disable('x-powered-by');
 
+var compression = require('compression');
 var EosApi = require('eosjs-api');
 var Promise = require('promise');
 
-var API_ENDPOINT =  "http://127.0.0.1:8888";
-
 eos = EosApi({
-    httpEndpoint: API_ENDPOINT,
+    httpEndpoint: "https://api.eosmedi.com",
     logger: {
     }
 })
+
+
 
 app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -53,6 +54,35 @@ var votedProducers = {};
 var allVoters = {};
 var votersInfo = {};
 var voterLogs = [];
+var proxyVoters = {};
+
+var snapshotData = {};
+var tableFile = "bpinfos.json";
+var producerInfoTable = {};
+
+function loadBpInfos(){
+    try{
+        producerInfoTable = JSON.parse(fs.readFileSync(tableFile, "utf-8"))
+    }catch(e){
+        producerInfoTable = {};
+    }
+}
+
+loadBpInfos();
+
+fs.watch(tableFile, function(){
+    console.log("bpinfos change");
+    loadBpInfos();
+})
+
+
+
+try{
+    var _snapshotData = fs.readFileSync("snapshot.json", "utf-8");
+    snapshotData = JSON.parse(_snapshotData);
+}catch(e){
+}
+
 
 function loadFromFile(){
     try{
@@ -199,11 +229,20 @@ var allProducersMap = {};
 
 function swapProducerVoters(producers){
     producers.rows.forEach(function(row){
+        var producer = row.owner;
         if(votedProducers[row.owner]){
             row.voters = Object.keys(votedProducers[row.owner]['voters']).length;
+            var bpinfo = producerInfoTable[producer];
+            if(bpinfo && bpinfo.org){
+                row.candidate_name = bpinfo.org.candidate_name;
+                row.branding = bpinfo.org.branding;
+                row.org_location = bpinfo.org.location;
+            }
+            delete row['producer_key'];
             allProducersMap[row.owner] = row;
         }
     })
+
     return producers.rows;
 }
 
@@ -287,8 +326,23 @@ function getVoterInfo(voter, missLoadCache){
         updateVoterInfo(voter);
     }
 
-    if(allVoters[voter]){
-        votersInfo[voter].vote_actions = allVoters[voter]['vote_actions'];
+    if(cacheData){
+    }
+
+    if(cacheData && snapshotData[cacheData.account_name]){
+        votersInfo[voter].snapshot = snapshotData[cacheData.account_name];
+        votersInfo[voter].eth = votersInfo[voter].snapshot.eth;
+    }
+
+    var voterIsProxy = proxyVoters[voter];
+    if(voterIsProxy){
+        var proxyStacked = 0;
+        Object.keys(proxyVoters[voter]["voters"]).forEach(function(proxyVoter){
+            var proxyVoterInfo = votersInfo[proxyVoter];
+            proxyStacked += parseInt(proxyVoterInfo.voter_info.staked);
+        })
+
+        votersInfo[voter].voter_info.staked = proxyStacked;
     }
 
     if(!cacheData){
@@ -301,6 +355,8 @@ function getVoterInfo(voter, missLoadCache){
 app.get('/getVoter/:voter', function(req, res, next){
     var voter = req.params.voter;
     var voterData = getVoterInfo(voter, false);
+
+
     res.json(voterData);
 });
 
@@ -319,6 +375,7 @@ app.get('/getProducer/:producer', function(req, res, next){
             producer: data,
             voters: rows,
             addLogs: votedProducers[data.owner]["addLogs"],
+            bpinfo: producerInfoTable[producer],
             removeLogs: votedProducers[data.owner]["removeLogs"]
         });
     }
@@ -347,6 +404,38 @@ app.get('/getVoteLogs', function(req, res, next){
 });
 
 
+app.get('/getVoteProxy', function(req, res, next){
+    res.json(proxyVoters);
+});
+
+
+
+app.get('/voterCompare', function(req, res, next){
+    var producers = req.query.producers || "";
+    producers = producers.split(",");
+    var dataRow = [];
+
+    producers.forEach(function(producer){
+        var data = allProducersMap[producer];
+        var voterData = getVoters(votedProducers[data.owner]['voters']);
+        var newData = [];
+        voterData.forEach(function(voter){
+            newData.push({
+                account_name: voter.account_name,
+                staked: voter.voter_info.staked,
+            })
+        })
+
+        dataRow.push({
+            producer: data,
+            voters: newData
+        })
+    })
+
+    res.json(dataRow);
+});
+
+
 var stream = require('stream');
 var liner = new stream.Transform( { objectMode: true } )
 
@@ -367,11 +456,11 @@ liner._flush = function (done) {
      done()
 }
 
-FILE_PATH = "./voter.log";
 
-// stream from file;
+FILE_PATH = "./voter.log";
 var source = fs.createReadStream(FILE_PATH)
 source.pipe(liner)
+
 liner.on('readable', function () {
     var line
     while (line = liner.read()) {
@@ -383,9 +472,11 @@ liner.on('readable', function () {
     }
 })
 
+FILE_PATH = "./voter.log";
 Tail = require('tail').Tail;
 
 tail = new Tail(FILE_PATH);
+
 tail.on("line", function(data) {
     console.log("tail new", data);
     try{
@@ -403,11 +494,10 @@ tail.on("error", function(error) {
 var voteBlockCount = 0;
 
 
-// build index
 function newVoterBlock(data){
 
     voteBlockCount++;
-    console.log("newVoterBlock", voteBlockCount);
+   // console.log("newVoterBlock", voteBlockCount);
 
     if(voterLogs.length > 50){
         voterLogs.shift();
@@ -426,6 +516,7 @@ function newVoterBlock(data){
     var producers = data.producers;
     var timestamp = data.timestamp;
     var block_num = data.block_num;
+    var proxy = data.proxy;
 
     allVoters[voter] = allVoters[voter] || {};
     allVoters[voter]['producers'] = allVoters[voter]['producers'] || {};
@@ -434,6 +525,24 @@ function newVoterBlock(data){
         console.log("fetch voter info", voter);
         updateVotersList.push(voter);
     }
+
+    if(proxy && !data.producers.length){
+        proxyVoters[proxy] = proxyVoters[proxy] || {};
+        proxyVoters[proxy]["voters"] = proxyVoters[proxy]["voters"] || {};
+        proxyVoters[proxy]["voters"][voter] = proxyVoters[proxy]["voters"][voter] || 0;
+        proxyVoters[proxy]["voters"][voter]++;
+    }
+
+
+    var voterIsProxy = proxyVoters[voter];
+    if(voterIsProxy){
+        console.log("voterIsProxy", "refresh voter info");
+        Object.keys(proxyVoters[voter]["voters"]).forEach(function(proxyVoter){
+            updateVotersList.push(proxyVoter);
+            needUpdateVoterTable[proxyVoter] = 1;
+        })
+    }
+
 
     producers.forEach(function(producer){
         votedProducers[producer] = votedProducers[producer] || {};
@@ -464,36 +573,48 @@ function newVoterBlock(data){
         allVoters[voter]['producers'][producer]['blocks'].push(data.block_num);
     })
 
-    if(!producers.length){
-        var lastVotedProducers = Object.keys(allVoters[voter]['producers']);
-        lastVotedProducers.forEach(function(votedProducer){
-            if(votedProducers[votedProducer]){
-                var voters = votedProducers[votedProducer]["voters"];
-                if(voters[voter]){
-                    if(votedProducers[votedProducer]["removeLogs"].length > 10){
-                        votedProducers[votedProducer]["removeLogs"].shift();
-                    }
-                    votedProducers[votedProducer]["removeLogs"].push({
-                        voter: voter,
-                        action: "remove",
-                        block_num: block_num,
-                        timestamp: timestamp
-                    });
-                    delete voters[voter];
-                }
-            }
-        })
+    allVoters[voter]['vote_time'] = timestamp;
 
+
+    var allProducers = Object.keys(allVoters[voter]['producers']);
+    var canceledProducers = [];
+
+    allProducers.forEach(function(producer){
+        if(producers.indexOf(producer) > -1){
+
+        }else{
+            canceledProducers.push(producer);
+        }
+    })
+
+    canceledProducers.forEach(function(votedProducer){
+        if(votedProducers[votedProducer]){
+            var voters = votedProducers[votedProducer]["voters"];
+            if(voters[voter]){
+                if(votedProducers[votedProducer]["removeLogs"].length > 10){
+                    votedProducers[votedProducer]["removeLogs"].shift();
+                }
+                votedProducers[votedProducer]["removeLogs"].push({
+                    voter: voter,
+                    action: "remove",
+                    block_num: block_num,
+                    timestamp: timestamp
+                });
+                delete voters[voter];
+            }
+        }
+
+    })
+
+    if(!producers.length){
         allVoters[voter]['vote_actions'] = allVoters[voter]['vote_actions'] || [];
         if(allVoters[voter]['vote_actions'].length > 5){
             allVoters[voter]['vote_actions'].shift();
         }
-
-        allVoters[voter]['vote_actions'].push(lastVotedProducers);
         allVoters[voter]['producers'] = {};
         delete allVoters[voter];
     }
-
 }
 
+app.use(compression());
 app.listen(8080);
