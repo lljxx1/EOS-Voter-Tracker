@@ -8,3 +8,6 @@ node recorder.js
 #start api endpoint
 node app.js
 ```
+
+
+this project split to https://github.com/eosmedi/votertracker-backend
